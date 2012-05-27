@@ -1,0 +1,215 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>WebGL Step 01</title>
+		<style type="text/css">
+			canvas { background-color: #666; }
+		</style>
+		<script type="text/javascript" src="sylvester.js"></script>
+		<script type="text/javascript" src="glUtils.js"></script>
+		<script type="text/javascript">
+			function MatrixHelper() { this.matrix = Matrix.I(4); }
+			MatrixHelper.prototype = {
+				make: function(fovy, aspect, znear, zfar) {
+					this.ppm = makePerspective(fovy, aspect, znear, zfar);
+				},
+
+				mult: function(m) {
+					this.matrix = this.matrix.x(m);
+				},
+
+				trans: function(v) {
+					this.mult(Matrix.Translation($V([v[0], v[1], v[2]])).ensure4x4());
+				},
+
+				set: function(gl, sProg) {
+					if(!!this.ppm) {
+						gl.uniformMatrix4fv(gl.getUniformLocation(sProg, "uPMatrix"), false, new Float32Array(this.ppm.flatten()));
+					}
+					if(!!this.matrix) {
+						gl.uniformMatrix4fv(gl.getUniformLocation(sProg, "uMVMatrix"), false, new Float32Array(this.matrix.flatten()));
+					}
+				},
+
+				rotate: function(angle, v) {
+					var m = Matrix.Rotation(angle * Math.PI / 180.0, $V([v[0], v[1], v[2]])).ensure4x4();
+					this.mult(m);
+				}
+			}
+			var WebGLHelper = {
+				$: function(id) {
+					return typeof id === "string" ? document.getElementById(id) : id;
+				},
+
+				$$: function(canvas) {
+					if(!(canvas === this.$(canvas))
+						|| canvas.nodeType != 1
+						|| canvas.nodeName.toLowerCase() != "canvas")
+						return null;
+					try {
+						return canvas.getContext("experimental-webgl");
+					} catch (e) {
+						return null;
+					}
+				},
+
+				getCode: function(script) {
+					if(!(script = this.$(script))) return null;
+					var source = "", child = script.firstChild;
+					while(!!child) {
+						if(child.nodeType == 3) {
+							source += child.textContent;
+						}
+						child = child.nextSibling;
+					}
+					child = script = null;
+					return source;
+				}
+			}
+		</script>
+	</head>
+	<body>
+		<canvas id="glcanvas" width="640" height="480"></canvas>
+
+		<script id="shader-fs" type="x-shader/x-fragment">
+			varying lowp vec4 vColor;
+			void main(void) {
+				gl_FragColor = vColor;
+			}
+		</script>
+		<script id="shader-vs" type="x-shader/x-vertex">
+			attribute vec3 aVertexPosition;
+			attribute vec4 aVertexColor;
+			uniform mat4 uMVMatrix;
+			uniform mat4 uPMatrix;
+			varying lowp vec4 vColor;
+			void main(void) {
+				gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+				vColor = aVertexColor;
+			}
+		</script>
+		<script type="text/javascript">
+
+			var vertices = [
+			    // Front face
+			    -1.0, -1.0,  1.0,
+			     1.0, -1.0,  1.0,
+			     1.0,  1.0,  1.0,
+			    -1.0,  1.0,  1.0,
+			    
+			    // Back face
+			    -1.0, -1.0, -1.0,
+			    -1.0,  1.0, -1.0,
+			     1.0,  1.0, -1.0,
+			     1.0, -1.0, -1.0,
+			    
+			    // Top face
+			    -1.0,  1.0, -1.0,
+			    -1.0,  1.0,  1.0,
+			     1.0,  1.0,  1.0,
+			     1.0,  1.0, -1.0,
+			    
+			    // Bottom face
+			    -1.0, -1.0, -1.0,
+			     1.0, -1.0, -1.0,
+			     1.0, -1.0,  1.0,
+			    -1.0, -1.0,  1.0,
+			    
+			    // Right face
+			     1.0, -1.0, -1.0,
+			     1.0,  1.0, -1.0,
+			     1.0,  1.0,  1.0,
+			     1.0, -1.0,  1.0,
+			    
+			    // Left face
+			    -1.0, -1.0, -1.0,
+			    -1.0, -1.0,  1.0,
+			    -1.0,  1.0,  1.0,
+			    -1.0,  1.0, -1.0
+			];
+			 
+			var cubeVertexIndices = [
+			    0,  1,  2,      0,  2,  3,    // front
+			    4,  5,  6,      4,  6,  7,    // back
+			    8,  9,  10,     8,  10, 11,   // top
+			    12, 13, 14,     12, 14, 15,   // bottom
+			    16, 17, 18,     16, 18, 19,   // right
+			    20, 21, 22,     20, 22, 23    // left
+			]
+			 
+			var colorGroups = [  
+			    [1.0,  0.0,  1.0,  1.0],    // white  
+			    [1.0,  0.0,  0.0,  1.0],    // red  
+			    [0.0,  1.0,  0.0,  1.0],    // green  
+			    [0.0,  0.0,  1.0,  1.0],    // blue
+			    [0.0,  1.0,  1.0,  1.0],
+			    [1.0,  1.0,  0.0,  1.0]
+			];
+
+			var generatedColors = [];
+			for(var i = 0; i < 6; i++) {
+				for (var j = 0; j < 4; j++) {
+					generatedColors = generatedColors.concat(colorGroups[i]);
+				}
+			}
+
+			var canvas = WebGLHelper.$("glcanvas"), gl = WebGLHelper.$$(canvas);
+			var testVertexCode = WebGLHelper.getCode("shader-vs"),
+				testFragmentCode = WebGLHelper.getCode("shader-fs");
+			
+			gl.clearColor(0.0, 0.0, 0.0, 1.0);
+			gl.clearDepth(1.0);
+			gl.enable(gl.DEPTH_TEST);
+			gl.depthFunc(gl.LEQUAL);
+
+			var vertShader = gl.createShader(gl.VERTEX_SHADER);
+			gl.shaderSource(vertShader, testVertexCode);
+			gl.compileShader(vertShader);
+
+			var fragShader = gl.createShader(gl.FRAGMENT_SHADER);
+			gl.shaderSource(fragShader, testFragmentCode);
+			gl.compileShader(fragShader);
+
+			var program = gl.createProgram();
+			gl.attachShader(program, vertShader);
+			gl.attachShader(program, fragShader);
+
+			gl.linkProgram(program);
+			gl.useProgram(program);
+
+			var vertexPosAttr = gl.getAttribLocation(program, "aVertexPosition");
+			gl.enableVertexAttribArray(vertexPosAttr);
+
+			var colorPosAttr = gl.getAttribLocation(program, "aVertexColor");
+			gl.enableVertexAttribArray(colorPosAttr);
+
+			var cubeVertexIndexBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, cubeVertexIndexBuffer);
+			gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, new Uint16Array(cubeVertexIndices), gl.STATIC_DRAW);
+
+			var cubeVerticesBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(vertices), gl.STATIC_DRAW);
+			gl.vertexAttribPointer(vertexPosAttr, 3, gl.FLOAT, false, 0, 0);
+
+			var cubeVerticesColorBuffer = gl.createBuffer();
+			gl.bindBuffer(gl.ARRAY_BUFFER, cubeVerticesColorBuffer);
+			gl.bufferData(gl.ARRAY_BUFFER, new Float32Array(generatedColors), gl.STATIC_DRAW);
+			gl.vertexAttribPointer(colorPosAttr, 4, gl.FLOAT, false, 0, 0);
+
+			var matrix = new MatrixHelper();
+			matrix.trans([0.0, 0.0, -6.0]);
+			matrix.make(45, 640/480, 0.1, 100.0);
+
+			var animate = function() {
+				gl.clear(gl.COLOR_BUFFER_BIT | gl.DEPTH_BUFFER_BIT);
+				matrix.rotate(1, [1, 0, 1]);
+				matrix.set(gl, program);
+				gl.drawElements(gl.TRIANGLES, 36, gl.UNSIGNED_SHORT, 0);
+			}
+
+			setInterval(animate, 40);
+		</script>
+	</body>
+</html>

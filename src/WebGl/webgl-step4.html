@@ -1,0 +1,115 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>WebGL Step 01</title>
+		<style type="text/css">
+			canvas { background-color: #666; }
+		</style>
+		<script type="text/javascript" src="sylvester.js"></script>
+		<script type="text/javascript" src="glUtils_mod.js"></script>
+		<script type="text/javascript" src="iWebGL.js"></script>
+	</head>
+	<body>
+		<canvas id="glcanvas" width="640" height="480"></canvas>
+
+		<script id="shader-fs" type="x-shader/x-fragment">
+			varying lowp vec4 vColor;
+			void main(void) {
+				gl_FragColor = vColor;
+			}
+		</script>
+		<script id="shader-vs" type="x-shader/x-vertex">
+			attribute vec3 aVertexPosition;
+			attribute vec4 aVertexColor;
+			uniform mat4 uMVMatrix;
+			uniform mat4 uPMatrix;
+			varying lowp vec4 vColor;
+			void main(void) {
+				gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+				vColor = aVertexColor;
+			}
+		</script>
+		<script type="text/javascript">
+
+			var vertices = [
+			    // Front face
+			    -1.0, -1.0,  1.0,
+			     1.0, -1.0,  1.0,
+			     1.0,  1.0,  1.0,
+			    -1.0,  1.0,  1.0,
+			    
+			    // Back face
+			    -1.0, -1.0, -1.0,
+			    -1.0,  1.0, -1.0,
+			     1.0,  1.0, -1.0,
+			     1.0, -1.0, -1.0,
+			    
+			    // Top face
+			    -1.0,  1.0, -1.0,
+			    -1.0,  1.0,  1.0,
+			     1.0,  1.0,  1.0,
+			     1.0,  1.0, -1.0,
+			    
+			    // Bottom face
+			    -1.0, -1.0, -1.0,
+			     1.0, -1.0, -1.0,
+			     1.0, -1.0,  1.0,
+			    -1.0, -1.0,  1.0,
+			    
+			    // Right face
+			     1.0, -1.0, -1.0,
+			     1.0,  1.0, -1.0,
+			     1.0,  1.0,  1.0,
+			     1.0, -1.0,  1.0,
+			    
+			    // Left face
+			    -1.0, -1.0, -1.0,
+			    -1.0, -1.0,  1.0,
+			    -1.0,  1.0,  1.0,
+			    -1.0,  1.0, -1.0
+			];
+			 
+			var cubeVertexIndices = [
+			    0,  1,  2,      0,  2,  3,    // front
+			    4,  5,  6,      4,  6,  7,    // back
+			    8,  9,  10,     8,  10, 11,   // top
+			    12, 13, 14,     12, 14, 15,   // bottom
+			    16, 17, 18,     16, 18, 19,   // right
+			    20, 21, 22,     20, 22, 23    // left
+			]
+			 
+			var colorGroups = [  
+			    [1.0,  0.0,  1.0,  1.0],    // white  
+			    [1.0,  0.0,  0.0,  1.0],    // red  
+			    [0.0,  1.0,  0.0,  1.0],    // green  
+			    [0.0,  0.0,  1.0,  1.0],    // blue
+			    [0.0,  1.0,  1.0,  1.0],
+			    [1.0,  1.0,  0.0,  1.0]
+			];
+
+			var generatedColors = [];
+			for(var i = 0; i < 6; i++) {
+				for (var j = 0; j < 4; j++) {
+					generatedColors = generatedColors.concat(colorGroups[i]);
+				}
+			}
+			
+			var igl = new iWebGL("glcanvas", 0);
+			igl.shader();
+			igl.paramVertices("aVertexPosition").define(vertices);
+			igl.paramColors("aVertexColor").define(generatedColors);
+			igl.paramVerticesIndex().define(cubeVertexIndices);
+
+			igl.matrix.trans([0.0, 0.0, -8.0]);
+			igl.matrix.make(40, 640/480, 0.1, 100.0);
+
+			var animate = function() {
+				igl.matrix.rotate(1, [1, 0, 1]);
+				igl.drawCube();
+			}
+
+			setInterval(animate, 40);
+		</script>
+	</body>
+</html>
