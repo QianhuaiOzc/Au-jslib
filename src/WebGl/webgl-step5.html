@@ -1,0 +1,63 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>WebGL Step 01</title>
+		<style type="text/css">
+			canvas { background-color: #666; }
+		</style>
+		<script type="text/javascript" src="sylvester.js"></script>
+		<script type="text/javascript" src="glUtils_mod.js"></script>
+		<script type="text/javascript" src="iWebGL.js"></script>
+		<script type="text/javascript" src="ArrayHelper.js"></script>
+	</head>
+	<body>
+		<canvas id="glcanvas" width="640" height="480"></canvas>
+
+		<script id="shader-fs" type="x-shader/x-fragment">
+			varying lowp vec4 vColor;
+			void main(void) {
+				gl_FragColor = vColor;
+			}
+		</script>
+		<script id="shader-vs" type="x-shader/x-vertex">
+			attribute vec3 aVertexPosition;
+			attribute vec4 aVertexColor;
+			uniform mat4 uMVMatrix;
+			uniform mat4 uPMatrix;
+			varying lowp vec4 vColor;
+			void main(void) {
+				gl_Position = uPMatrix * uMVMatrix * vec4(aVertexPosition, 1.0);
+				vColor = aVertexColor;
+			}
+		</script>
+		<script type="text/javascript">
+
+			var vs = CubeVertices();
+			var cs = CubeColors();
+
+			cs.Front('fa0', 'fa0', 'f00', 'f00');
+			cs.Back('060', '060', '0e0', '0e0');
+			cs.Top('0af', '0af', '00f', '00f');
+			cs.Bottom('f09', 'f09', 'f0f', 'f0f');
+			cs.Right('fff', 'fff', '888', '888');
+			cs.Left('0f0', '0f0', '0a0', '0a0');
+			
+			var igl = new iWebGL("glcanvas", 0);
+			igl.shader();
+			igl.paramVertices("aVertexPosition").define(vs.data);
+			igl.paramColors("aVertexColor").define(cs.data);
+			igl.paramVerticesIndex().define(vs.indices);
+
+			igl.matrix.trans([0.0, 0.0, -8.0]);
+			igl.matrix.make(40, 640/480, 0.1, 100.0);
+
+			var animate = function() {
+				igl.matrix.rotate(1, [1, 0, 1]);
+				igl.drawCube();
+			}
+
+			setInterval(animate, 40);
+		</script>
+	</body>
+</html>
