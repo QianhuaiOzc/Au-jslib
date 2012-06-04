@@ -150,6 +150,7 @@ iWebGL.prototype = {
 				this.gl,
 				this.program = this.gl.createProgram()
 				);
+			this.shader();
 		}
 	},
 	/* 重置绘图区域颜色/景深/遮挡关系等设置 */

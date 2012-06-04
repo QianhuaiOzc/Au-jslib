@@ -1,0 +1,36 @@
+<!DOCTYPE HTML>
+<html>
+	<head>
+		<meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+		<title>Three JS</title>
+		<style type="text/css">
+			canvas { background-color: #666; }
+			div#canvas-frame {
+				border: none;
+				cursor: pointer;
+				width: 600px;
+				height: 600px;
+				background-color: #EEEEEE;
+			}
+		</style>
+		<script type="text/javascript" src="Three.js"></script>
+	</head>
+	<body onload="threeStart();">
+		<!-- <canvas id="glcanvas" width="640" height="480"></canvas> -->
+		<div id="canvas-frame"></div>
+		<script type="text/javascript">
+			var renderer;
+			function initThree() {
+				var width = document.getElementById("canvas-frame").clientWidth;
+				var height = document.getElementById("canvas-frame").clientHeight;
+				renderer = new Three.WebGLRenderer({antialias: true});
+				renderer.setSize(width, height);
+				document.getElementById("canvas-frame").appendChild(renderer.domElement);
+				renderer.setClearColorHex(0xFFFFFF, 1.0);
+			}
+
+			var camera;
+			function 
+		</script>
+	</body>
+</html>
